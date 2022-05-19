@@ -10,19 +10,73 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const {username} = request.headers;
+  
+  const userExists = users.find((user) => {
+    return user.username === username;
+  })
+  
+  if(!userExists){
+    return response.status(404).json({error: "User doesn't exists"});
+  }
+  
+  request.user = userExists;
+  
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const {user} = request;
+  
+  if(user.todos.length >= 10 && !user.pro){
+    return response.status(403).json({error: "total tasks on the free plan consumed"})
+  }
+  
+  return next();
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const {username} = request.headers;
+  const {id} = request.params;
+
+  const userExists = users.find((user) => {
+    return user.username === username;
+  })
+
+  if(!userExists){
+    return response.status(404).json({error: "User doesn't exists"});
+  }
+
+  if(!validate(id)) {
+    return response.status(400).json({error: "Invalid id"});
+  }
+
+  const todoExists = userExists.todos.find(todo => todo.id === id);
+  
+  if(!todoExists){
+    return response.status(404).json({error: "Todo doesn't exists"});
+  }
+
+  request.user = userExists;
+  request.todo = todoExists;
+  
+  return next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const {id} = request.params;
+
+  const userExists = users.find((user) => {
+    return user.id === id;
+  })
+
+  if(!userExists){
+    return response.status(404).json({error: "User doesn't exists"});
+  }
+  
+  request.user = userExists;
+  
+  return next();
 }
 
 app.post('/users', (request, response) => {
@@ -110,10 +164,6 @@ app.delete('/todos/:id', checksExistsUserAccount, checksTodoExists, (request, re
   const { user, todo } = request;
 
   const todoIndex = user.todos.indexOf(todo);
-
-  if (todoIndex === -1) {
-    return response.status(404).json({ error: 'Todo not found' });
-  }
 
   user.todos.splice(todoIndex, 1);
 
